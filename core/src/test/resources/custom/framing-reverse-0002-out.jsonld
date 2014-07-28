@@ -1,0 +1,51 @@
+{
+    "@context" : {
+        "dc" : "http://purl.org/dc/elements/1.1/",
+        "ex" : "http://example.org/vocab#",
+        "books" : {
+            "@reverse" : "ex:containedIn",
+            "@type" : "ex:Book",
+            "@container" : "@set"
+        },
+        "articles" : {
+            "@reverse" : "ex:containedIn",
+            "@type" : "ex:Article",
+            "@container" : "@set"
+        },
+        "chapters" : {
+            "@reverse" : "ex:containedIn",
+            "@type" : "ex:Chapter",
+            "@container" : "@set"
+        }
+    },
+    "@graph" : [ {
+        "@id" : "http://example.org/test#library",
+        "books" : [ {
+            "@id" : "http://example.org/test#book",
+            "chapters" : [ {
+                "@id" : "http://example.org/test#chapter1",
+                "@type" : "ex:Chapter",
+                "dc:description" : "Fun",
+                "dc:title" : "Chapter One"
+            }, {
+                "@id" : "http://example.org/test#chapter2",
+                "@type" : "ex:Chapter",
+                "dc:description" : "More fun",
+                "dc:title" : "Chapter Two"
+            } ],
+            "@type" : "ex:Book",
+            "dc:contributor" : "Writer",
+            "dc:title" : "My Book"
+        } ],
+        "articles" : [ {
+            "@id" : "http://example.org/test#article1",
+            "@type" : "ex:Article",
+            "dc:title" : "My Article"
+        }, {
+            "@id" : "http://example.org/test#article2",
+            "@type" : "ex:Article",
+            "dc:title" : "My Other Article"
+        } ],
+        "@type" : "ex:Library"
+    } ]
+}

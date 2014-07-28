@@ -1,0 +1,18 @@
+{
+    "@context": {
+        "dc": "http://purl.org/dc/elements/1.1/",
+        "ex": "http://example.org/vocab#",
+        "books": {"@reverse":"ex:containedIn", "@container": "@set", "@type": "ex:Book"},
+        "articles": {"@reverse":"ex:containedIn", "@container": "@set", "@type": "ex:Article"},
+        "chapters": {"@reverse":"ex:containedIn", "@container": "@set", "@type": "ex:Chapter"}
+    },
+
+    "@type": "ex:Library",
+    "books": {
+        "chapters" : {},
+        "@type": "ex:Book"
+    },
+    "articles": {
+        "@type": "ex:Article"
+    }
+}

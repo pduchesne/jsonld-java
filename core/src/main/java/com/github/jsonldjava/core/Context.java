@@ -1,6 +1,7 @@
 package com.github.jsonldjava.core;
 
 import static com.github.jsonldjava.core.JsonLdUtils.compareShortestLeast;
+import static com.github.jsonldjava.core.JsonLdUtils.isKeyword;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -687,7 +688,7 @@ public class Context extends LinkedHashMap<String, Object> {
             preferredValues.add("@none");
 
             // 2.14)
-            final String term = selectTerm(iri, containers, typeLanguage, preferredValues);
+            final String term = selectTerm(iri, containers, typeLanguage, preferredValues, value);
             // 2.15)
             if (term != null) {
                 return term;
@@ -882,9 +883,16 @@ public class Context extends LinkedHashMap<String, Object> {
             if (Boolean.TRUE.equals(definition.get("@reverse"))) {
                 final Map<String, Object> typeMap = (Map<String, Object>) typeLanguageMap
                         .get("@type");
-                if (!typeMap.containsKey("@reverse")) {
-                    typeMap.put("@reverse", term);
-                }
+                // Extension to the Inverse Context Creation algorithm :
+                //     create a map of (type,term) pairs
+                Map<String, Object> subtypesMap = (Map<String, Object>)typeMap.get("@reverse");
+                if (subtypesMap == null) typeMap.put("@reverse", subtypesMap = new LinkedHashMap<String, Object>());
+
+                if (definition.containsKey("@type") && !isKeyword(definition.get("@type")))
+                    subtypesMap.put((String)definition.get("@type"), term);
+                else
+                    subtypesMap.put(null, term);
+
                 // 3.9)
             } else if (definition.containsKey("@type")) {
                 final Map<String, Object> typeMap = (Map<String, Object>) typeLanguageMap
@@ -943,7 +951,7 @@ public class Context extends LinkedHashMap<String, Object> {
      * @return the selected term.
      */
     private String selectTerm(String iri, List<String> containers, String typeLanguage,
-            List<String> preferredValues) {
+            List<String> preferredValues, Object value) {
         final Map<String, Object> inv = getInverse();
         // 1)
         final Map<String, Object> containerMap = (Map<String, Object>) inv.get(iri);
@@ -966,7 +974,30 @@ public class Context extends LinkedHashMap<String, Object> {
                     continue;
                 }
                 // 2.4.2
-                return (String) valueMap.get(item);
+                if (!"@reverse".equals(item)) {
+                    // 2.4.2.1
+                    return (String) valueMap.get(item);
+                } else {
+                    // 2.4.2.2
+                    // Extension to the Term Selection algorithm :
+                    //     for @reverse preferredValue, a map of (type,term) pairs is provided ;
+                    //     default term (i.e. original behaviour) is mapped on the null key
+                    Map<String,String> subtypesMap = (Map<String,String>)valueMap.get(item);
+                    String valueType = null;
+                    if (value instanceof Map) {
+                        List<String> types = (List)((Map)value).get("@type");
+                        if (types != null && !isKeyword(types.get(0))) {
+                            valueType = types.get(0);
+                        }
+                    }
+                    if (subtypesMap.containsKey(valueType))
+                        return subtypesMap.get(valueType);
+                    else if (subtypesMap.containsKey(null))
+                        // default term
+                        return subtypesMap.get(null);
+                    else
+                        continue;
+                }
             }
         }
         // 3)
