@@ -7,15 +7,7 @@ import static com.github.jsonldjava.core.JsonLdConsts.RDF_REST;
 import static com.github.jsonldjava.core.JsonLdConsts.RDF_TYPE;
 import static com.github.jsonldjava.core.JsonLdUtils.isKeyword;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1330,6 +1322,31 @@ public class JsonLdApi {
         // add matches to output
         final List<String> ids = new ArrayList<String>(matches.keySet());
         Collections.sort(ids);
+
+        // build a map of reverse properties, indexing all objects subject to a reverse property and with current
+        final Map<String, Map<String, List<String>>> reversedPropsMatches = new HashMap();
+        if (frame.containsKey("@reverse")) {
+            Map<String, Object> reverseProperties  = (Map)frame.get("@reverse");
+
+            for (Map.Entry<String, Object> reverseProp: reverseProperties.entrySet()) {
+                Map<String, List<String>> propMatches = reversedPropsMatches.get(reverseProp.getKey());
+                if (propMatches == null)
+                    reversedPropsMatches.put(reverseProp.getKey(), propMatches = new HashMap());
+
+                for (final Object id : this.nodeMap.keySet()) {
+                    final Map<String, Object> element = (Map<String, Object>) this.nodeMap.get(id);
+                    if (element != null && element.containsKey(reverseProp.getKey())) {
+                        Object subjectObj = element.get(reverseProp.getKey());
+                        if (subjectObj instanceof List) {
+                            for (Object subj: (List)subjectObj) addMatchesForSubject(propMatches, subj, id);
+                        } else {
+                            addMatchesForSubject(propMatches, subjectObj, id);
+                        }
+                    }
+                }
+            }
+        }
+
         for (final String id : ids) {
             if (property == null) {
                 state.embeds = new LinkedHashMap<String, EmbedNode>();
@@ -1458,6 +1475,36 @@ public class JsonLdApi {
                     }
                 }
 
+                // Process the list of @reverse properties
+                if (frame.containsKey("@reverse")) {
+                    final Map<String, Object> reverseOutput = new LinkedHashMap<String, Object>();
+
+                    for (String reverseProp: reversedPropsMatches.keySet()) {
+                        // take pre-computed list of matching objects for this reversed property
+                        Map<String,List<String>> rpm = reversedPropsMatches.get(reverseProp);
+
+                        // get list of reverse properties resulting from frame expansion
+                        List propList = (List)((Map)frame.get("@reverse")).get(reverseProp);
+                        if (rpm.containsKey(id)) {
+                            final Map<String, Object> tmp = new LinkedHashMap<String, Object>();
+                            // add all objects target of the reversed property in the tmp map
+                            for (String reverseId: rpm.get(id)) {
+                                tmp.put(reverseId, this.nodeMap.get(reverseId));
+                            }
+                            for (Object prop: propList)
+                                frame(state, tmp,
+                                        (Map<String, Object>) prop,
+                                        reverseOutput, reverseProp);
+                        }
+                    }
+
+                    // Remove reversed relation from resulting objects (useless redundancy)
+                    //TODO should be done by passing exclusion list to above call to frame(...)
+                    for (String reversedProp: reverseOutput.keySet()) removeProperty(reverseOutput.get(reversedProp), reversedProp);
+
+                    output.put("@reverse", reverseOutput);
+                }
+
                 // handle defaults
                 props = new ArrayList<String>(frame.keySet());
                 Collections.sort(props);
@@ -1513,6 +1560,41 @@ public class JsonLdApi {
             return (Boolean) value;
         }
         return thedefault;
+    }
+
+    /**
+     * Extracts the IRI of an object. If the object is a String, then it is returned as is.
+     * If a Map, the @id value is returned.
+     * Otherwise (a List) an exception is thrown.
+     * @return the IRI of the value
+     * @param value
+     * @return
+     */
+    private static String getId(Object value) {
+        if (value instanceof String) return (String)value;
+        else if (value instanceof Map) return (String)((Map)value).get("@id");
+        else throw new IllegalArgumentException("Cannot extract id from multi-values");
+    }
+
+    private static void addMatchesForSubject(Map<String, List<String>> currentMatches, Object subject, Object elementId) throws JsonLdError {
+        String subjectId = getId(subject);
+        if (subjectId == null)  throw new JsonLdError(Error.INVALID_ID_VALUE, "value of @id cannot be null");
+        List matchingObjs = currentMatches.get(subjectId);
+        if (matchingObjs == null) currentMatches.put(subjectId, matchingObjs = new ArrayList());
+        matchingObjs.add(elementId);
+    }
+
+    /**
+     * Remove a property from an Object or a list of Objects.
+     * @param value (list of) object(s) to browse
+     * @param property property to remove
+     */
+    private static void removeProperty(Object value, String property) {
+        if (value instanceof List) {
+            for (Object listElement: (List)value) removeProperty(listElement, property);
+        } else if (value instanceof Map) {
+            ((Map)value).remove(property);
+        }
     }
 
     /**

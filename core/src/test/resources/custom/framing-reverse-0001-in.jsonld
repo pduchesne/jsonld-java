@@ -1,0 +1,34 @@
+{
+    "@context": {
+        "dc": "http://purl.org/dc/elements/1.1/",
+        "ex": "http://example.org/vocab#",
+        "ex:containedIn": {"@type": "@id"}
+    },
+    "@graph": [
+        {
+            "@id": "http://example.org/test#library",
+            "@type": "ex:Library"
+        },
+        {
+            "@id": "http://example.org/test#book",
+            "@type": "ex:Book",
+            "dc:contributor": "Writer",
+            "dc:title": "My Book",
+            "ex:containedIn": "http://example.org/test#library"
+        },
+        {
+            "@id": "http://example.org/test#chapter1",
+            "@type": "ex:Chapter",
+            "dc:description": "Fun",
+            "dc:title": "Chapter One",
+            "ex:containedIn": "http://example.org/test#book"
+        },
+        {
+            "@id": "http://example.org/test#chapter2",
+            "@type": "ex:Chapter",
+            "dc:description": "More fun",
+            "dc:title": "Chapter Two",
+            "ex:containedIn": "http://example.org/test#book"
+        }
+    ]
+}
