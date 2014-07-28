@@ -47,6 +47,9 @@ public class JsonUtils {
         // where a wide range of URIs are used for subjects and predicates
         JSON_FACTORY.disable(JsonFactory.Feature.INTERN_FIELD_NAMES);
         JSON_FACTORY.disable(JsonFactory.Feature.CANONICALIZE_FIELD_NAMES);
+
+        // allow comments in JSON files
+        JSON_FACTORY.enable(JsonParser.Feature.ALLOW_COMMENTS);
     }
 
     /**
