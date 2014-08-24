@@ -7,15 +7,7 @@ import static com.github.jsonldjava.core.JsonLdConsts.RDF_REST;
 import static com.github.jsonldjava.core.JsonLdConsts.RDF_TYPE;
 import static com.github.jsonldjava.core.JsonLdUtils.isKeyword;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1290,6 +1282,7 @@ public class JsonLdApi {
         final Map<String, Object> nodes = new TreeMap<String, Object>();
         generateNodeMap(input, nodes);
         this.nodeMap = (Map<String, Object>) nodes.get("@default");
+        if (this.nodeMap == null) this.nodeMap = new HashMap<String, Object>();
 
         final List<Object> framed = new ArrayList<Object>();
         // NOTE: frame validation is done by the function not allowing anything
@@ -1555,7 +1548,7 @@ public class JsonLdApi {
 
     private static void removeDependents(Map<String, EmbedNode> embeds, String id) {
         // get embed keys as a separate array to enable deleting keys in map
-        for (final String id_dep : embeds.keySet()) {
+        for (final String id_dep : embeds.keySet().toArray(new String[] {})) {
             final EmbedNode e = embeds.get(id_dep);
             final Object p = e.parent != null ? e.parent : new LinkedHashMap<String, Object>();
             if (!(p instanceof Map)) {
