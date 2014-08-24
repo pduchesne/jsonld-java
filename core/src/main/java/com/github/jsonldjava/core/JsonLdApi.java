@@ -1282,6 +1282,7 @@ public class JsonLdApi {
         final Map<String, Object> nodes = new TreeMap<String, Object>();
         generateNodeMap(input, nodes);
         this.nodeMap = (Map<String, Object>) nodes.get("@default");
+        if (this.nodeMap == null) this.nodeMap = new HashMap<String, Object>();
 
         final List<Object> framed = new ArrayList<Object>();
         // NOTE: frame validation is done by the function not allowing anything
@@ -1637,7 +1638,7 @@ public class JsonLdApi {
 
     private static void removeDependents(Map<String, EmbedNode> embeds, String id) {
         // get embed keys as a separate array to enable deleting keys in map
-        for (final String id_dep : embeds.keySet()) {
+        for (final String id_dep : embeds.keySet().toArray(new String[] {})) {
             final EmbedNode e = embeds.get(id_dep);
             final Object p = e.parent != null ? e.parent : new LinkedHashMap<String, Object>();
             if (!(p instanceof Map)) {
