@@ -14,12 +14,14 @@ import static com.github.jsonldjava.core.JsonLdUtils.isList;
 import static com.github.jsonldjava.core.JsonLdUtils.isObject;
 import static com.github.jsonldjava.core.JsonLdUtils.isValue;
 import static com.github.jsonldjava.core.Regex.HEX;
+import static com.github.jsonldjava.utils.Obj.newMap;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,12 +30,12 @@ public class RDFDatasetUtils {
 
     /**
      * Creates an array of RDF triples for the given graph.
-     * 
+     *
      * @param graph
      *            the graph to create RDF triples for.
      * @param namer
      *            a UniqueNamer for assigning blank node names.
-     * 
+     *
      * @return the array of RDF triples for the given graph.
      * @deprecated Use {@link RDFDataset#graphToRDF(String, Map)} instead
      */
@@ -54,7 +56,7 @@ public class RDFDatasetUtils {
 
                 for (final Object item : (List<Object>) items) {
                     // RDF subjects
-                    final Map<String, Object> subject = new LinkedHashMap<String, Object>();
+                    final Map<String, Object> subject = newMap();
                     if (id.indexOf("_:") == 0) {
                         subject.put("type", "blank node");
                         subject.put("value", namer.getName(id));
@@ -64,7 +66,7 @@ public class RDFDatasetUtils {
                     }
 
                     // RDF predicates
-                    final Map<String, Object> predicate = new LinkedHashMap<String, Object>();
+                    final Map<String, Object> predicate = newMap();
                     predicate.put("type", "IRI");
                     predicate.put("value", property);
 
@@ -76,7 +78,7 @@ public class RDFDatasetUtils {
                     // convert value or node object to triple
                     else {
                         final Object object = objectToRDF(item, namer);
-                        final Map<String, Object> tmp = new LinkedHashMap<String, Object>();
+                        final Map<String, Object> tmp = newMap();
                         tmp.put("subject", subject);
                         tmp.put("predicate", predicate);
                         tmp.put("object", object);
@@ -92,7 +94,7 @@ public class RDFDatasetUtils {
     /**
      * Converts a @list value into linked list of blank node RDF triples (an RDF
      * collection).
-     * 
+     *
      * @param list
      *            the @list value.
      * @param namer
@@ -106,23 +108,23 @@ public class RDFDatasetUtils {
      */
     private static void listToRDF(List<Object> list, UniqueNamer namer,
             Map<String, Object> subject, Map<String, Object> predicate, List<Object> triples) {
-        final Map<String, Object> first = new LinkedHashMap<String, Object>();
+        final Map<String, Object> first = newMap();
         first.put("type", "IRI");
         first.put("value", RDF_FIRST);
-        final Map<String, Object> rest = new LinkedHashMap<String, Object>();
+        final Map<String, Object> rest = newMap();
         rest.put("type", "IRI");
         rest.put("value", RDF_REST);
-        final Map<String, Object> nil = new LinkedHashMap<String, Object>();
+        final Map<String, Object> nil = newMap();
         nil.put("type", "IRI");
         nil.put("value", RDF_NIL);
 
         for (final Object item : list) {
-            final Map<String, Object> blankNode = new LinkedHashMap<String, Object>();
+            final Map<String, Object> blankNode = newMap();
             blankNode.put("type", "blank node");
             blankNode.put("value", namer.getName());
 
             {
-                final Map<String, Object> tmp = new LinkedHashMap<String, Object>();
+                final Map<String, Object> tmp = newMap();
                 tmp.put("subject", subject);
                 tmp.put("predicate", predicate);
                 tmp.put("object", blankNode);
@@ -134,7 +136,7 @@ public class RDFDatasetUtils {
             final Object object = objectToRDF(item, namer);
 
             {
-                final Map<String, Object> tmp = new LinkedHashMap<String, Object>();
+                final Map<String, Object> tmp = newMap();
                 tmp.put("subject", subject);
                 tmp.put("predicate", predicate);
                 tmp.put("object", object);
@@ -143,7 +145,7 @@ public class RDFDatasetUtils {
 
             predicate = rest;
         }
-        final Map<String, Object> tmp = new LinkedHashMap<String, Object>();
+        final Map<String, Object> tmp = newMap();
         tmp.put("subject", subject);
         tmp.put("predicate", predicate);
         tmp.put("object", nil);
@@ -153,16 +155,16 @@ public class RDFDatasetUtils {
     /**
      * Converts a JSON-LD value object to an RDF literal or a JSON-LD string or
      * node object to an RDF resource.
-     * 
+     *
      * @param item
      *            the JSON-LD value or node object.
      * @param namer
      *            the UniqueNamer to use to assign blank node names.
-     * 
+     *
      * @return the RDF literal or RDF resource.
      */
     private static Object objectToRDF(Object item, UniqueNamer namer) {
-        final Map<String, Object> object = new LinkedHashMap<String, Object>();
+        final Map<String, Object> object = newMap();
 
         // convert value object to RDF
         if (isValue(item)) {
@@ -179,6 +181,7 @@ public class RDFDatasetUtils {
                 } else if (value instanceof Double || value instanceof Float) {
                     // canonical double representation
                     final DecimalFormat df = new DecimalFormat("0.0###############E0");
+                    df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.US));
                     object.put("value", df.format(value));
                     object.put("datatype", datatype == null ? XSD_DOUBLE : datatype);
                 } else {
@@ -312,8 +315,8 @@ public class RDFDatasetUtils {
                 if (m.group(1) == null) {
                     final String hex = m.group(2) != null ? m.group(2) : m.group(3);
                     final int v = Integer.parseInt(hex, 16);// hex =
-                                                            // hex.replaceAll("^(?:00)+",
-                                                            // "");
+                    // hex.replaceAll("^(?:00)+",
+                    // "");
                     if (v > 0xFFFF) {
                         // deal with UTF-32
                         // Integer v = Integer.parseInt(hex, 16);
@@ -376,16 +379,16 @@ public class RDFDatasetUtils {
             final char hi = str.charAt(i);
             if (hi <= 0x8 || hi == 0xB || hi == 0xC || (hi >= 0xE && hi <= 0x1F)
                     || (hi >= 0x7F && hi <= 0xA0) || // 0xA0 is end of
-                                                     // non-printable latin-1
-                                                     // supplement
-                                                     // characters
+                    // non-printable latin-1
+                    // supplement
+                    // characters
                     ((hi >= 0x24F // 0x24F is the end of latin extensions
                     && !Character.isHighSurrogate(hi))
                     // TODO: there's probably a lot of other characters that
                     // shouldn't be escaped that
                     // fall outside these ranges, this is one example from the
                     // json-ld tests
-                    )) {
+                            )) {
                 rval += String.format("\\u%04x", (int) hi);
             } else if (Character.isHighSurrogate(hi)) {
                 final char lo = str.charAt(++i);
@@ -408,9 +411,9 @@ public class RDFDatasetUtils {
                 case '\r':
                     rval += "\\r";
                     break;
-                // case '\'':
-                // rval += "\\'";
-                // break;
+                    // case '\'':
+                    // rval += "\\'";
+                    // break;
                 case '\"':
                     rval += "\\\"";
                     // rval += "\\u0022";
@@ -459,10 +462,10 @@ public class RDFDatasetUtils {
 
     /**
      * Parses RDF in the form of N-Quads.
-     * 
+     *
      * @param input
      *            the N-Quads input to parse.
-     * 
+     *
      * @return an RDF dataset.
      * @throws JsonLdError
      *             If there was an error parsing the N-Quads document.

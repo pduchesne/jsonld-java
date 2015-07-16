@@ -1,9 +1,11 @@
-Note: this is the documentation for the current unstable development branch. [For the stable release documentation see here](https://github.com/jsonld-java/jsonld-java/blob/v0.5.0/README.md)
+Note: this is the documentation for the current unstable development branch. [For the stable release documentation see here](https://github.com/jsonld-java/jsonld-java/blob/v0.5.1/README.md)
 
 JSONLD-JAVA
 ===========
 
 This is a Java implementation of the [JSON-LD specification](http://www.w3.org/TR/json-ld/) and the [JSON-LD-API specification](http://www.w3.org/TR/json-ld-api/).
+
+[![Build Status](https://travis-ci.org/jsonld-java/jsonld-java.svg?branch=master)](https://travis-ci.org/jsonld-java/jsonld-java) [![Coverage Status](https://coveralls.io/repos/jsonld-java/jsonld-java/badge.svg?branch=master)](https://coveralls.io/r/jsonld-java/jsonld-java?branch=master)
 
 USAGE
 =====
@@ -14,7 +16,7 @@ From Maven
     <dependency>
         <groupId>com.github.jsonld-java</groupId>
         <artifactId>jsonld-java</artifactId>
-        <version>0.5.1-SNAPSHOT</version>
+        <version>0.6.0-SNAPSHOT</version>
     </dependency>
 
 Code example
@@ -235,6 +237,28 @@ Then, you can open a pull request to merge your change into the master branch of
 
 CHANGELOG
 =========
+
+### 2015-03-12
+* Compact context arrays if they contain a single element during compaction
+* Bump to Sesame-2.7.15
+
+### 2015-03-01
+* Use jopt-simple for the playground cli to simplify the coding and improve error messages
+* Allow RDF parsing and writing using all of the available Sesame Rio parsers through the playground cli
+* Make the httpclient dependency OSGi compliant
+
+### 2014-12-31
+* Fix locale sensitive serialisation of XSD double/decimal typed literals to always be Locale.US
+* Bump to Sesame-2.7.14
+* Bump to Clerezza-0.14
+
+### 2014-11-14
+* Fix identification of integer, boolean, and decimal in RDF-JSONLD with useNativeTypes
+* Release 0.5.1
+
+### 2014-10-29
+* Add OSGi metadata to Jar files
+* Bump to Sesame-2.7.13
 
 ### 2014-07-14
 * Release version 0.5.0

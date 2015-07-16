@@ -25,9 +25,9 @@ import com.github.jsonldjava.core.JsonLdProcessor;
 /**
  * Functions used to make loading, parsing, and serializing JSON easy using
  * Jackson.
- * 
+ *
  * @author tristan
- * 
+ *
  */
 public class JsonUtils {
     /**
@@ -57,7 +57,7 @@ public class JsonUtils {
      * that can be used as input for the {@link JsonLdApi} and
      * {@link JsonLdProcessor} methods.<br>
      * Uses UTF-8 as the character encoding when decoding the InputStream.
-     * 
+     *
      * @param input
      *            The JSON-LD document in an InputStream.
      * @return A JSON Object.
@@ -75,7 +75,7 @@ public class JsonUtils {
      * Parses a JSON-LD document from the given {@link InputStream} to an object
      * that can be used as input for the {@link JsonLdApi} and
      * {@link JsonLdProcessor} methods.
-     * 
+     *
      * @param input
      *            The JSON-LD document in an InputStream.
      * @param enc
@@ -95,7 +95,7 @@ public class JsonUtils {
      * Parses a JSON-LD document from the given {@link Reader} to an object that
      * can be used as input for the {@link JsonLdApi} and
      * {@link JsonLdProcessor} methods.
-     * 
+     *
      * @param reader
      *            The JSON-LD document in a Reader.
      * @return A JSON Object.
@@ -132,7 +132,7 @@ public class JsonUtils {
     /**
      * Parses a JSON-LD document from a string to an object that can be used as
      * input for the {@link JsonLdApi} and {@link JsonLdProcessor} methods.
-     * 
+     *
      * @param jsonString
      *            The JSON-LD document as a string.
      * @return A JSON Object.
@@ -149,7 +149,7 @@ public class JsonUtils {
      * Parses a JSON-LD document, from the contents of the JSON resource
      * resolved from the JsonLdUrl, to an object that can be used as input for
      * the {@link JsonLdApi} and {@link JsonLdProcessor} methods.
-     * 
+     *
      * @param url
      *            The JsonLdUrl to resolve
      * @return A JSON Object.
@@ -165,7 +165,7 @@ public class JsonUtils {
     /**
      * Writes the given JSON-LD Object out to a String, using indentation and
      * new lines to improve readability.
-     * 
+     *
      * @param jsonObject
      *            The JSON-LD Object to serialize.
      * @return A JSON document serialised to a String.
@@ -175,7 +175,7 @@ public class JsonUtils {
      *             If there is an IO error during serialization.
      */
     public static String toPrettyString(Object jsonObject) throws JsonGenerationException,
-            IOException {
+    IOException {
         final StringWriter sw = new StringWriter();
         writePrettyPrint(sw, jsonObject);
         return sw.toString();
@@ -183,7 +183,7 @@ public class JsonUtils {
 
     /**
      * Writes the given JSON-LD Object out to a String.
-     * 
+     *
      * @param jsonObject
      *            The JSON-LD Object to serialize.
      * @return A JSON document serialised to a String.
@@ -200,7 +200,7 @@ public class JsonUtils {
 
     /**
      * Writes the given JSON-LD Object out to the given Writer.
-     * 
+     *
      * @param writer
      *            The writer that is to receive the serialized JSON-LD object.
      * @param jsonObject
@@ -211,7 +211,7 @@ public class JsonUtils {
      *             If there is an IO error during serialization.
      */
     public static void write(Writer writer, Object jsonObject) throws JsonGenerationException,
-            IOException {
+    IOException {
         final JsonGenerator jw = JSON_FACTORY.createGenerator(writer);
         jw.writeObject(jsonObject);
     }
@@ -219,7 +219,7 @@ public class JsonUtils {
     /**
      * Writes the given JSON-LD Object out to the given Writer, using
      * indentation and new lines to improve readability.
-     * 
+     *
      * @param writer
      *            The writer that is to receive the serialized JSON-LD object.
      * @param jsonObject

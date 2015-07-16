@@ -1,6 +1,7 @@
 package com.github.jsonldjava.core;
 
 import static com.github.jsonldjava.core.JsonLdUtils.compareShortestLeast;
+import static com.github.jsonldjava.utils.Obj.newMap;
 import static com.github.jsonldjava.core.JsonLdUtils.isKeyword;
 
 import java.util.ArrayList;
@@ -17,9 +18,9 @@ import com.github.jsonldjava.utils.Obj;
 /**
  * A helper class which still stores all the values in a map but gives member
  * variables easily access certain keys
- * 
+ *
  * @author tristan
- * 
+ *
  */
 public class Context extends LinkedHashMap<String, Object> {
 
@@ -57,14 +58,14 @@ public class Context extends LinkedHashMap<String, Object> {
         if (options.getBase() != null) {
             this.put("@base", options.getBase());
         }
-        this.termDefinitions = new LinkedHashMap<String, Object>();
+        this.termDefinitions = newMap();
     }
 
     /**
      * Value Compaction Algorithm
-     * 
+     *
      * http://json-ld.org/spec/latest/json-ld-api/#value-compaction
-     * 
+     *
      * @param activeProperty
      *            The Active Property
      * @param value
@@ -123,9 +124,9 @@ public class Context extends LinkedHashMap<String, Object> {
 
     /**
      * Context Processing Algorithm
-     * 
+     *
      * http://json-ld.org/spec/latest/json-ld-api/#context-processing-algorithms
-     * 
+     *
      * @param localContext
      *            The Local Context object.
      * @param remoteContexts
@@ -254,9 +255,9 @@ public class Context extends LinkedHashMap<String, Object> {
 
     /**
      * Create Term Definition Algorithm
-     * 
+     *
      * http://json-ld.org/spec/latest/json-ld-api/#create-term-definition
-     * 
+     *
      * @param result
      * @param context
      * @param key
@@ -289,9 +290,7 @@ public class Context extends LinkedHashMap<String, Object> {
         }
 
         if (value instanceof String) {
-            final Map<String, Object> tmp = new LinkedHashMap<String, Object>();
-            tmp.put("@id", value);
-            value = tmp;
+            value = newMap("@id", value);
         }
 
         if (!(value instanceof Map)) {
@@ -302,7 +301,7 @@ public class Context extends LinkedHashMap<String, Object> {
         final Map<String, Object> val = (Map<String, Object>) value;
 
         // 9) create a new term definition
-        final Map<String, Object> definition = new LinkedHashMap<String, Object>();
+        final Map<String, Object> definition = newMap();
 
         // 10)
         if (val.containsKey("@type")) {
@@ -435,9 +434,9 @@ public class Context extends LinkedHashMap<String, Object> {
 
     /**
      * IRI Expansion Algorithm
-     * 
+     *
      * http://json-ld.org/spec/latest/json-ld-api/#iri-expansion
-     * 
+     *
      * @param value
      * @param relative
      * @param vocab
@@ -506,12 +505,12 @@ public class Context extends LinkedHashMap<String, Object> {
 
     /**
      * IRI Compaction Algorithm
-     * 
+     *
      * http://json-ld.org/spec/latest/json-ld-api/#iri-compaction
-     * 
+     *
      * Compacts an IRI or keyword into a term or prefix if it can be. If the IRI
      * has an associated value it may be passed.
-     * 
+     *
      * @param iri
      *            the IRI to compact.
      * @param value
@@ -521,7 +520,7 @@ public class Context extends LinkedHashMap<String, Object> {
      * @vocab, false not to.
      * @param reverse
      *            true if a reverse property is being compacted, false if not.
-     * 
+     *
      * @return the compacted term, prefix, keyword alias, or the original IRI.
      */
     String compactIri(String iri, Object value, boolean relativeToVocab, boolean reverse) {
@@ -759,14 +758,14 @@ public class Context extends LinkedHashMap<String, Object> {
      * <p>
      * No guarantees of the prefixes are given, beyond that it will not contain
      * ":".
-     * 
+     *
      * @param onlyCommonPrefixes
      *            If <code>true</code>, the result will not include
      *            "not so useful" prefixes, such as "term1":
      *            "http://example.com/term1", e.g. all IRIs will end with "/" or
      *            "#". If <code>false</code>, all potential prefixes are
      *            returned.
-     * 
+     *
      * @return A map from prefix string to IRI string
      */
     public Map<String, String> getPrefixes(boolean onlyCommonPrefixes) {
@@ -813,12 +812,12 @@ public class Context extends LinkedHashMap<String, Object> {
 
     /**
      * Inverse Context Creation
-     * 
+     *
      * http://json-ld.org/spec/latest/json-ld-api/#inverse-context-creation
-     * 
+     *
      * Generates an inverse context for use in the compaction algorithm, if not
      * already generated for the given active context.
-     * 
+     *
      * @return the inverse context.
      */
     public Map<String, Object> getInverse() {
@@ -829,7 +828,7 @@ public class Context extends LinkedHashMap<String, Object> {
         }
 
         // 1)
-        inverse = new LinkedHashMap<String, Object>();
+        inverse = newMap();
 
         // 2)
         String defaultLanguage = (String) this.get("@language");
@@ -866,16 +865,16 @@ public class Context extends LinkedHashMap<String, Object> {
             // 3.4 + 3.5)
             Map<String, Object> containerMap = (Map<String, Object>) inverse.get(iri);
             if (containerMap == null) {
-                containerMap = new LinkedHashMap<String, Object>();
+                containerMap = newMap();
                 inverse.put(iri, containerMap);
             }
 
             // 3.6 + 3.7)
             Map<String, Object> typeLanguageMap = (Map<String, Object>) containerMap.get(container);
             if (typeLanguageMap == null) {
-                typeLanguageMap = new LinkedHashMap<String, Object>();
-                typeLanguageMap.put("@language", new LinkedHashMap<String, Object>());
-                typeLanguageMap.put("@type", new LinkedHashMap<String, Object>());
+                typeLanguageMap = newMap();
+                typeLanguageMap.put("@language", newMap());
+                typeLanguageMap.put("@type", newMap());
                 containerMap.put(container, typeLanguageMap);
             }
 
@@ -939,15 +938,15 @@ public class Context extends LinkedHashMap<String, Object> {
 
     /**
      * Term Selection
-     * 
+     *
      * http://json-ld.org/spec/latest/json-ld-api/#term-selection
-     * 
+     *
      * This algorithm, invoked via the IRI Compaction algorithm, makes use of an
      * active context's inverse context to find the term that is best used to
      * compact an IRI. Other information about a value associated with the IRI
      * is given, including which container mappings and which type mapping or
      * language mapping would be best used to express the value.
-     * 
+     *
      * @return the selected term.
      */
     private String selectTerm(String iri, List<String> containers, String typeLanguage,
@@ -1006,7 +1005,7 @@ public class Context extends LinkedHashMap<String, Object> {
 
     /**
      * Retrieve container mapping.
-     * 
+     *
      * @param property
      *            The Property to get a container mapping for.
      * @return The container mapping
@@ -1055,7 +1054,7 @@ public class Context extends LinkedHashMap<String, Object> {
     }
 
     public Object expandValue(String activeProperty, Object value) throws JsonLdError {
-        final Map<String, Object> rval = new LinkedHashMap<String, Object>();
+        final Map<String, Object> rval = newMap();
         final Map<String, Object> td = getTermDefinition(activeProperty);
         // 1)
         if (td != null && "@id".equals(td.get("@type"))) {
@@ -1099,7 +1098,7 @@ public class Context extends LinkedHashMap<String, Object> {
     }
 
     public Map<String, Object> serialize() {
-        final Map<String, Object> ctx = new LinkedHashMap<String, Object>();
+        final Map<String, Object> ctx = newMap();
         if (this.get("@base") != null && !this.get("@base").equals(options.getBase())) {
             ctx.put("@base", this.get("@base"));
         }
@@ -1119,7 +1118,7 @@ public class Context extends LinkedHashMap<String, Object> {
                 final String cid = this.compactIri((String) definition.get("@id"));
                 ctx.put(term, term.equals(cid) ? definition.get("@id") : cid);
             } else {
-                final Map<String, Object> defn = new LinkedHashMap<String, Object>();
+                final Map<String, Object> defn = newMap();
                 final String cid = this.compactIri((String) definition.get("@id"));
                 final Boolean reverseProperty = Boolean.TRUE.equals(definition.get("@reverse"));
                 if (!(term.equals(cid) && !reverseProperty)) {
@@ -1141,7 +1140,7 @@ public class Context extends LinkedHashMap<String, Object> {
             }
         }
 
-        final Map<String, Object> rval = new LinkedHashMap<String, Object>();
+        final Map<String, Object> rval = newMap();
         if (!(ctx == null || ctx.isEmpty())) {
             rval.put("@context", ctx);
         }

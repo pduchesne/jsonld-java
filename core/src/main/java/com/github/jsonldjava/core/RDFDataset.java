@@ -14,12 +14,15 @@ import static com.github.jsonldjava.core.JsonLdUtils.isList;
 import static com.github.jsonldjava.core.JsonLdUtils.isObject;
 import static com.github.jsonldjava.core.JsonLdUtils.isString;
 import static com.github.jsonldjava.core.JsonLdUtils.isValue;
+import static com.github.jsonldjava.utils.Obj.newMap;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -29,13 +32,20 @@ import java.util.regex.Pattern;
  * dataset store. Currently each item just wraps a Map based on the old format
  * so everything doesn't break. Will phase this out once everything is using the
  * new format.
- * 
+ *
  * @author Tristan
- * 
+ *
  */
 public class RDFDataset extends LinkedHashMap<String, Object> {
+    private static final long serialVersionUID = 2796344994239879165L;
+
+    private static final Pattern PATTERN_INTEGER = Pattern.compile("^[\\-+]?[0-9]+$");
+    private static final Pattern PATTERN_DOUBLE = Pattern
+            .compile("^(\\+|-)?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([Ee](\\+|-)?[0-9]+)?$");
 
     public static class Quad extends LinkedHashMap<String, Object> implements Comparable<Quad> {
+        private static final long serialVersionUID = -7021918051975883082L;
+
         public Quad(final String subject, final String predicate, final String object,
                 final String graph) {
             this(subject, predicate, object.startsWith("_:") ? new BlankNode(object) : new IRI(
@@ -103,7 +113,9 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
     }
 
     public static abstract class Node extends LinkedHashMap<String, Object> implements
-            Comparable<Node> {
+    Comparable<Node> {
+        private static final long serialVersionUID = 1460990331795672793L;
+
         public abstract boolean isLiteral();
 
         public abstract boolean isIRI();
@@ -143,12 +155,12 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
         /**
          * Converts an RDF triple object to a JSON-LD object.
-         * 
+         *
          * @param o
          *            the RDF triple object to convert.
          * @param useNativeTypes
          *            true to output native types, false not to.
-         * 
+         *
          * @return the JSON-LD object.
          * @throws JsonLdError
          */
@@ -157,20 +169,11 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
             // JSON object consisting
             // of a single member @id whose value is set to value.
             if (isIRI() || isBlankNode()) {
-                return new LinkedHashMap<String, Object>() {
-                    {
-                        put("@id", getValue());
-                    }
-                };
+                return newMap("@id", getValue());
             }
-            ;
 
             // convert literal object to JSON-LD
-            final Map<String, Object> rval = new LinkedHashMap<String, Object>() {
-                {
-                    put("@value", getValue());
-                }
-            };
+            final Map<String, Object> rval = newMap("@value", getValue());
 
             // add language
             if (getLanguage() != null) {
@@ -189,9 +192,16 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
                             rval.put("@value", Boolean.TRUE);
                         } else if ("false".equals(value)) {
                             rval.put("@value", Boolean.FALSE);
+                        } else {
+                            // Else do not replace the value, and add the
+                            // boolean type in
+                            rval.put("@type", type);
                         }
-                    } else if (Pattern.matches(
-                            "^[+-]?[0-9]+((?:\\.?[0-9]+((?:E?[+-]?[0-9]+)|)|))$", value)) {
+                    } else if (
+                            // http://www.w3.org/TR/xmlschema11-2/#integer
+                            (XSD_INTEGER.equals(type) && PATTERN_INTEGER.matcher(value).matches())
+                            // http://www.w3.org/TR/xmlschema11-2/#nt-doubleRep
+                            || (XSD_DOUBLE.equals(type) && PATTERN_DOUBLE.matcher(value).matches())) {
                         try {
                             final Double d = Double.parseDouble(value);
                             if (!Double.isNaN(d) && !Double.isInfinite(d)) {
@@ -203,9 +213,8 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
                                 } else if (XSD_DOUBLE.equals(type)) {
                                     rval.put("@value", d);
                                 } else {
-                                    // we don't know the type, so we should add
-                                    // it to the JSON-LD
-                                    rval.put("@type", type);
+                                    throw new RuntimeException(
+                                            "This should never happen as we checked the type was either integer or double");
                                 }
                             }
                         } catch (final NumberFormatException e) {
@@ -227,6 +236,8 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
     }
 
     public static class Literal extends Node {
+        private static final long serialVersionUID = 8124736271571220251L;
+
         public Literal(String value, String datatype, String language) {
             super();
             put("type", "literal");
@@ -282,6 +293,8 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
     }
 
     public static class IRI extends Node {
+        private static final long serialVersionUID = 1540232072155490782L;
+
         public IRI(String iri) {
             super();
             put("type", "IRI");
@@ -305,6 +318,8 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
     }
 
     public static class BlankNode extends Node {
+        private static final long serialVersionUID = -2842402820440697318L;
+
         public BlankNode(String attribute) {
             super();
             put("type", "blank node");
@@ -346,7 +361,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
     /*
      * public RDFDataset(String blankNodePrefix) { this(new
      * UniqueNamer(blankNodePrefix)); }
-     * 
+     *
      * public RDFDataset(UniqueNamer namer) { this(); this.namer = namer; }
      */
     public RDFDataset(JsonLdApi jsonLdApi) {
@@ -375,11 +390,11 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
     /**
      * Returns a valid context containing any namespaces set
-     * 
+     *
      * @return The context map
      */
     public Map<String, Object> getContext() {
-        final Map<String, Object> rval = new LinkedHashMap<String, Object>();
+        final Map<String, Object> rval = newMap();
         rval.putAll(context);
         // replace "" with "@vocab"
         if (rval.containsKey("")) {
@@ -390,7 +405,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
     /**
      * parses a context object and sets any namespaces found within it
-     * 
+     *
      * @param contextLike
      *            The context to parse
      * @throws JsonLdError
@@ -426,7 +441,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
     /**
      * Adds a triple to the @default graph of this dataset
-     * 
+     *
      * @param subject
      *            the subject for the triple
      * @param predicate
@@ -446,7 +461,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
     /**
      * Adds a triple to the specified graph of this dataset
-     * 
+     *
      * @param s
      *            the subject for the triple
      * @param p
@@ -474,7 +489,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
     /**
      * Adds a triple to the default graph of this dataset
-     * 
+     *
      * @param subject
      *            the subject for the triple
      * @param predicate
@@ -488,7 +503,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
     /**
      * Adds a triple to the specified graph of this dataset
-     * 
+     *
      * @param subject
      *            the subject for the triple
      * @param predicate
@@ -511,7 +526,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
 
     /**
      * Creates an array of RDF triples for the given graph.
-     * 
+     *
      * @param graphName
      *            The graph URI
      * @param graph
@@ -608,7 +623,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
     /**
      * Converts a JSON-LD value object to an RDF literal or a JSON-LD string or
      * node object to an RDF resource.
-     * 
+     *
      * @param item
      *            the JSON-LD value or node object.
      * @return the RDF literal or RDF resource.
@@ -629,6 +644,7 @@ public class RDFDataset extends LinkedHashMap<String, Object> {
                         || XSD_DOUBLE.equals(datatype)) {
                     // canonical double representation
                     final DecimalFormat df = new DecimalFormat("0.0###############E0");
+                    df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.US));
                     return new Literal(df.format(value), datatype == null ? XSD_DOUBLE
                             : (String) datatype, null);
                 } else {

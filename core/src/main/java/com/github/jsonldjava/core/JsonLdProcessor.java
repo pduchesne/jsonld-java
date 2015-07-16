@@ -1,5 +1,7 @@
 package com.github.jsonldjava.core;
 
+import static com.github.jsonldjava.utils.Obj.newMap;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -18,9 +20,9 @@ import com.github.jsonldjava.impl.TurtleTripleCallback;
  * >JsonLdProcessor interface</a>, except that it does not currently support
  * asynchronous processing, and hence does not return Promises, instead directly
  * returning the results.
- * 
+ *
  * @author tristan
- * 
+ *
  */
 public class JsonLdProcessor {
 
@@ -28,7 +30,7 @@ public class JsonLdProcessor {
      * Compacts the given input using the context according to the steps in the
      * <a href="http://www.w3.org/TR/json-ld-api/#compaction-algorithm">
      * Compaction algorithm</a>.
-     * 
+     *
      * @param input
      *            The input JSON-LD object.
      * @param context
@@ -61,9 +63,9 @@ public class JsonLdProcessor {
         // TODO: SPEC: the result result is a NON EMPTY array,
         if (compacted instanceof List) {
             if (((List<Object>) compacted).isEmpty()) {
-                compacted = new LinkedHashMap<String, Object>();
+                compacted = newMap();
             } else {
-                final Map<String, Object> tmp = new LinkedHashMap<String, Object>();
+                final Map<String, Object> tmp = newMap();
                 // TODO: SPEC: doesn't specify to use vocab = true here
                 tmp.put(activeCtx.compactIri("@graph", true), compacted);
                 compacted = tmp;
@@ -74,7 +76,14 @@ public class JsonLdProcessor {
             // the keySet
             if ((context instanceof Map && !((Map<String, Object>) context).isEmpty())
                     || (context instanceof List && !((List<Object>) context).isEmpty())) {
-                ((Map<String, Object>) compacted).put("@context", context);
+
+                if (context instanceof List && ((List<Object>) context).size() == 1
+                        && opts.getCompactArrays()) {
+                    ((Map<String, Object>) compacted).put("@context",
+                            ((List<Object>) context).get(0));
+                } else {
+                    ((Map<String, Object>) compacted).put("@context", context);
+                }
             }
         }
 
@@ -86,7 +95,7 @@ public class JsonLdProcessor {
      * Expands the given input according to the steps in the <a
      * href="http://www.w3.org/TR/json-ld-api/#expansion-algorithm">Expansion
      * algorithm</a>.
-     * 
+     *
      * @param input
      *            The input JSON-LD object.
      * @param opts
@@ -157,7 +166,7 @@ public class JsonLdProcessor {
      * Expands the given input according to the steps in the <a
      * href="http://www.w3.org/TR/json-ld-api/#expansion-algorithm">Expansion
      * algorithm</a>, using the default {@link JsonLdOptions}.
-     * 
+     *
      * @param input
      *            The input JSON-LD object.
      * @return The expanded JSON-LD document
@@ -181,8 +190,8 @@ public class JsonLdProcessor {
         // http://json-ld.org/spec/latest/json-ld-api/#flattening-algorithm
 
         // 1)
-        final Map<String, Object> nodeMap = new LinkedHashMap<String, Object>();
-        nodeMap.put("@default", new LinkedHashMap<String, Object>());
+        final Map<String, Object> nodeMap = newMap();
+        nodeMap.put("@default", newMap());
         // 2)
         new JsonLdApi(opts).generateNodeMap(expanded, nodeMap);
         // 3)
@@ -193,7 +202,7 @@ public class JsonLdProcessor {
             // 4.1+4.2)
             Map<String, Object> entry;
             if (!defaultGraph.containsKey(graphName)) {
-                entry = new LinkedHashMap<String, Object>();
+                entry = newMap();
                 entry.put("@id", graphName);
                 defaultGraph.put(graphName, entry);
             } else {
@@ -251,7 +260,7 @@ public class JsonLdProcessor {
      * according to the steps in the <a
      * href="http://www.w3.org/TR/json-ld-api/#flattening-algorithm">Flattening
      * algorithm</a>:
-     * 
+     *
      * @param input
      *            The input JSON-LD object.
      * @param opts
@@ -269,7 +278,7 @@ public class JsonLdProcessor {
      * Frames the given input using the frame according to the steps in the <a
      * href="http://json-ld.org/spec/latest/json-ld-framing/#framing-algorithm">
      * Framing Algorithm</a>.
-     * 
+     *
      * @param input
      *            The input JSON-LD object.
      * @param frame
@@ -313,7 +322,7 @@ public class JsonLdProcessor {
     /**
      * A registry for RDF Parsers (in this case, JSONLDSerializers) used by
      * fromRDF if no specific serializer is specified and options.format is set.
-     * 
+     *
      * TODO: this would fit better in the document loader class
      */
     private static Map<String, RDFParser> rdfParsers = new LinkedHashMap<String, RDFParser>() {
@@ -334,7 +343,7 @@ public class JsonLdProcessor {
 
     /**
      * Converts an RDF dataset to JSON-LD.
-     * 
+     *
      * @param dataset
      *            a serialized string of RDF in a format specified by the format
      *            option or an RDF dataset to convert.
@@ -372,7 +381,7 @@ public class JsonLdProcessor {
     /**
      * Converts an RDF dataset to JSON-LD, using the default
      * {@link JsonLdOptions}.
-     * 
+     *
      * @param dataset
      *            a serialized string of RDF in a format specified by the format
      *            option or an RDF dataset to convert.
@@ -387,7 +396,7 @@ public class JsonLdProcessor {
     /**
      * Converts an RDF dataset to JSON-LD, using a specific instance of
      * {@link RDFParser}.
-     * 
+     *
      * @param input
      *            a serialized string of RDF in a format specified by the format
      *            option or an RDF dataset to convert.
@@ -422,7 +431,8 @@ public class JsonLdProcessor {
             } else if ("flattened".equals(options.outputForm)) {
                 return flatten(rval, dataset.getContext(), options);
             } else {
-                throw new JsonLdError(JsonLdError.Error.UNKNOWN_ERROR);
+                throw new JsonLdError(JsonLdError.Error.UNKNOWN_ERROR, "Output form was unknown: "
+                        + options.outputForm);
             }
         }
         return rval;
@@ -431,7 +441,7 @@ public class JsonLdProcessor {
     /**
      * Converts an RDF dataset to JSON-LD, using a specific instance of
      * {@link RDFParser}, and the default {@link JsonLdOptions}.
-     * 
+     *
      * @param input
      *            a serialized string of RDF in a format specified by the format
      *            option or an RDF dataset to convert.
@@ -448,7 +458,7 @@ public class JsonLdProcessor {
 
     /**
      * Outputs the RDF dataset found in the given JSON-LD object.
-     * 
+     *
      * @param input
      *            the JSON-LD input.
      * @param callback
@@ -508,7 +518,7 @@ public class JsonLdProcessor {
 
     /**
      * Outputs the RDF dataset found in the given JSON-LD object.
-     * 
+     *
      * @param input
      *            the JSON-LD input.
      * @param options
@@ -527,7 +537,7 @@ public class JsonLdProcessor {
     /**
      * Outputs the RDF dataset found in the given JSON-LD object, using the
      * default {@link JsonLdOptions}.
-     * 
+     *
      * @param input
      *            the JSON-LD input.
      * @param callback
@@ -544,7 +554,7 @@ public class JsonLdProcessor {
     /**
      * Outputs the RDF dataset found in the given JSON-LD object, using the
      * default {@link JsonLdOptions}.
-     * 
+     *
      * @param input
      *            the JSON-LD input.
      * @return A JSON-LD object.
@@ -558,7 +568,7 @@ public class JsonLdProcessor {
     /**
      * Performs RDF dataset normalization on the given JSON-LD input. The output
      * is an RDF dataset unless the 'format' option is used.
-     * 
+     *
      * @param input
      *            the JSON-LD input to normalize.
      * @param options
@@ -583,7 +593,7 @@ public class JsonLdProcessor {
      * Performs RDF dataset normalization on the given JSON-LD input. The output
      * is an RDF dataset unless the 'format' option is used. Uses the default
      * {@link JsonLdOptions}.
-     * 
+     *
      * @param input
      *            the JSON-LD input to normalize.
      * @return The JSON-LD object

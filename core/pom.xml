@@ -4,13 +4,13 @@
 	<parent>
 		<artifactId>jsonld-java-parent</artifactId>
 		<groupId>com.github.jsonld-java</groupId>
-		<version>0.5.1-SNAPSHOT</version>
+		<version>0.6.0-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>jsonld-java</artifactId>
 	<name>JSONLD Java :: Core</name>
 	<description>Json-LD core implementation</description>
-	<packaging>jar</packaging>
+	<packaging>bundle</packaging>
 
 	<dependencies>
 		<dependency>
@@ -52,11 +52,11 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient-cache</artifactId>
+			<artifactId>httpclient-osgi</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
+			<artifactId>httpcore-osgi</artifactId>
 		</dependency>
 		<!-- NOTE: Exclude this as a dependency if you are using slf4j-jcl. It 
 			is necessary here to avoid ClassNotFoundErrors in httpclient -->
@@ -70,6 +70,30 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>animal-sniffer-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<extensions>true</extensions>
+				<configuration>
+					<instructions>
+						<Import-Package>
+							org.slf4j.*; version="[1.0.0,2)",
+							*
+						</Import-Package>
+					</instructions>
+				</configuration>
+			</plugin>
+			<!-- Use this test plugin as bnd don't generate test jar needed by sesame 
+				integration module -->
+			<!-- test jar generation is configured by default for this plugin in parent -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
 	</build>
