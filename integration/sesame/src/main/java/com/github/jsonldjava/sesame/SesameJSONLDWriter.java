@@ -9,23 +9,19 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.openrdf.model.Model;
 import org.openrdf.model.Namespace;
 import org.openrdf.model.Statement;
+import org.openrdf.model.URI;
 import org.openrdf.model.impl.LinkedHashModel;
+import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFWriter;
-import org.openrdf.rio.helpers.BasicWriterSettings;
-import org.openrdf.rio.helpers.JSONLDMode;
-import org.openrdf.rio.helpers.JSONLDSettings;
-import org.openrdf.rio.helpers.RDFWriterBase;
-import org.openrdf.rio.helpers.StatementCollector;
+import org.openrdf.rio.RioSetting;
+import org.openrdf.rio.helpers.*;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -96,13 +92,21 @@ public class SesameJSONLDWriter extends RDFWriterBase implements RDFWriter {
                 output = JsonLdProcessor.expand(output, opts);
             }
             // TODO: Implement inframe in JSONLDSettings
-            final Object inframe = null;
+            Map<String, Object> frame = (Map<String, Object>)getWriterConfig().get(SesameJSONLDSettings.FRAME);
+            Map<String, Object> ctx = (Map<String, Object>)getWriterConfig().get(SesameJSONLDSettings.CONTEXT);
+
+            if (frame != null) {
+                output = JsonLdProcessor.frame(output, frame, opts);
+            }
             if (mode == JSONLDMode.FLATTEN) {
-                output = JsonLdProcessor.flatten(output, inframe, opts);
+                output = JsonLdProcessor.flatten(output, ctx, opts);
             }
             if (mode == JSONLDMode.COMPACT) {
-                final Map<String, Object> ctx = new LinkedHashMap<String, Object>();
-                addPrefixes(ctx, model.getNamespaces());
+                if (ctx == null) {
+                    ctx = new HashMap<String, Object>();
+                    addProperties(ctx, statementCollector.getStatements());
+                    addPrefixes(ctx, model.getNamespaces());
+                }
                 final Map<String, Object> localCtx = new HashMap<String, Object>();
                 localCtx.put("@context", ctx);
 
@@ -143,6 +147,36 @@ public class SesameJSONLDWriter extends RDFWriterBase implements RDFWriter {
         for (final Namespace ns : namespaces) {
             ctx.put(ns.getPrefix(), ns.getName());
         }
+
+    }
+
+    private void addProperties(final Map<String, Object> ctx, Collection<Statement> statements) {
+        // Add some properties directly so it becomes "localname": ....
+        final Set<String> dups = new HashSet<String>();
+
+        for (Statement item: statements) {
+
+                final URI p = item.getPredicate();
+                if (p.equals(RDF.TYPE)) {
+                    continue;
+                }
+                final String x = p.getLocalName();
+                if (dups.contains(x)) {
+                    continue;
+                }
+
+                if (ctx.containsKey(x)) {
+                    // Check different URI
+                    // pmap2.remove(x) ;
+                    // dups.add(x) ;
+                } else {
+                    final Map<String, Object> x2 = new LinkedHashMap<String, Object>();
+                    x2.put("@id", p.stringValue());
+                    x2.put("@type", "@id");
+                    ctx.put(x, x2);
+                }
+
+        };
 
     }
 }

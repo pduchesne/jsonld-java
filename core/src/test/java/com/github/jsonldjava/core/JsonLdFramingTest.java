@@ -7,6 +7,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -27,6 +29,16 @@ public class JsonLdFramingTest {
 
         Assert.assertTrue(JsonLdUtils.deepCompare(expected, framed));
         //System.out.println(JsonUtils.toPrettyString(framed));
+
+
+        // test the reverse transformation (flatten + compact)
+        // take the original input context to do the compacting
+        Map context = new HashMap();
+        context.put("@context", ((Map)input).get("@context"));
+        Object flattened = JsonLdProcessor.flatten(framed, opts);
+        Object compacted = JsonLdProcessor.compact(flattened, context, opts);
+
+        Assert.assertTrue(JsonLdUtils.deepCompare(input, compacted));
     }
 
     @Test
@@ -41,6 +53,18 @@ public class JsonLdFramingTest {
 
         Assert.assertTrue(JsonLdUtils.deepCompare(expected, framed));
         //System.out.println(JsonUtils.toPrettyString(framed));
+
+
+        // test the reverse transformation (flatten + compact)
+        // take the original input context to do the compacting
+        Map context = new HashMap();
+        context.put("@context", ((Map)input).get("@context"));
+        Object flattened = JsonLdProcessor.flatten(framed, opts);
+        Object compacted = JsonLdProcessor.compact(flattened, context, opts);
+
+        Assert.assertTrue(JsonLdUtils.deepCompare(input, compacted));
+
+
     }
 
 }
