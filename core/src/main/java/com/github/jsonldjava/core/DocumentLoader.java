@@ -59,6 +59,8 @@ public class DocumentLoader {
     public Object fromURL(java.net.URL url) throws JsonParseException, IOException {
 
         final MappingJsonFactory jsonFactory = new MappingJsonFactory();
+        // allow comments in JSON files
+        jsonFactory.enable(JsonParser.Feature.ALLOW_COMMENTS);
         final InputStream in = openStreamFromURL(url);
         try {
             final JsonParser parser = jsonFactory.createParser(in);

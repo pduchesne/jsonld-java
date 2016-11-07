@@ -91,6 +91,30 @@ public class JsonLdProcessor {
         return (Map<String, Object>) compacted;
     }
 
+    public static Object parseInputIfPossible(Object input, JsonLdOptions opts) throws JsonLdError {
+        if (input instanceof String && ((String) input).contains(":")) {
+            try {
+                final RemoteDocument tmp = opts.getDocumentLoader().loadDocument((String) input);
+
+                // if set the base in options should override the base iri in the
+                // active context
+                // thus only set this as the base iri if it's not already set in
+                // options
+                if (opts.getBase() == null) {
+                    opts.setBase((String) input);
+                }
+
+                return tmp.document;
+                // TODO: figure out how to deal with remote context
+            } catch (final Exception e) {
+                throw new JsonLdError(Error.LOADING_DOCUMENT_FAILED, e.getMessage());
+            }
+        } else {
+            return input;
+        }
+    }
+
+
     /**
      * Expands the given input according to the steps in the <a
      * href="http://www.w3.org/TR/json-ld-api/#expansion-algorithm">Expansion
@@ -110,22 +134,7 @@ public class JsonLdProcessor {
         // TODO: look into java futures/promises
 
         // 2) TODO: better verification of DOMString IRI
-        if (input instanceof String && ((String) input).contains(":")) {
-            try {
-                final RemoteDocument tmp = opts.getDocumentLoader().loadDocument((String) input);
-                input = tmp.document;
-                // TODO: figure out how to deal with remote context
-            } catch (final Exception e) {
-                throw new JsonLdError(Error.LOADING_DOCUMENT_FAILED, e.getMessage());
-            }
-            // if set the base in options should override the base iri in the
-            // active context
-            // thus only set this as the base iri if it's not already set in
-            // options
-            if (opts.getBase() == null) {
-                opts.setBase((String) input);
-            }
-        }
+        input = parseInputIfPossible(input, opts);
 
         // 3)
         Context activeCtx = new Context(opts);
@@ -298,6 +307,9 @@ public class JsonLdProcessor {
             frame = JsonLdUtils.clone(frame);
         }
         // TODO string/IO input
+
+        input = parseInputIfPossible(input, opts);
+        frame = parseInputIfPossible(frame, opts);
 
         final Object expandedInput = expand(input, opts);
         final List<Object> expandedFrame = expand(frame, opts);
