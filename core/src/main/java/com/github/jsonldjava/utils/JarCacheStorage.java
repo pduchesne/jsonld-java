@@ -22,6 +22,7 @@ import org.apache.http.client.cache.HttpCacheStorage;
 import org.apache.http.client.cache.HttpCacheUpdateCallback;
 import org.apache.http.client.cache.HttpCacheUpdateException;
 import org.apache.http.client.cache.Resource;
+import org.apache.http.impl.client.cache.BasicHttpCacheStorage;
 import org.apache.http.impl.client.cache.CacheConfig;
 import org.apache.http.impl.cookie.DateUtils;
 import org.apache.http.message.BasicHeader;
@@ -40,8 +41,25 @@ public class JarCacheStorage implements HttpCacheStorage {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final CacheConfig cacheConfig = new CacheConfig();
+    private final CacheConfig cacheConfig;
+    // private final CacheConfig cacheConfig = new CacheConfig();
     private ClassLoader classLoader;
+
+    /**
+     * All live caching that is not found locally is delegated to this
+     * implementation.
+     */
+    private final HttpCacheStorage delegate;
+
+    ObjectMapper mapper = new ObjectMapper();
+
+    /**
+     * Map from uri of jarcache.json (e.g. jar://blab.jar!jarcache.json) to a
+     * SoftReference to its content as JsonNode.
+     *
+     * @see #getJarCache(URL)
+     */
+    protected ConcurrentMap<URI, SoftReference<JsonNode>> jarCaches = new ConcurrentHashMap<URI, SoftReference<JsonNode>>();
 
     public ClassLoader getClassLoader() {
         if (classLoader != null) {
@@ -54,25 +72,45 @@ public class JarCacheStorage implements HttpCacheStorage {
         this.classLoader = classLoader;
     }
 
+    /**
+     * @deprecated Use
+     *             {@link JarCacheStorage#JarCacheStorage(ClassLoader, CacheConfig)}
+     *             instead.
+     */
+    @Deprecated
     public JarCacheStorage() {
-        this(null);
+        this(null, CacheConfig.DEFAULT);
     }
 
+    /**
+     *
+     * @param classLoader
+     *            The ClassLoader to use to locate JAR files and resources, or
+     *            null to use the Thread context class loader in each case.
+     * @deprecated Use
+     *             {@link JarCacheStorage#JarCacheStorage(ClassLoader, CacheConfig)}
+     *             instead.
+     */
+    @Deprecated
     public JarCacheStorage(ClassLoader classLoader) {
+        this(classLoader, CacheConfig.DEFAULT);
+    }
+
+    public JarCacheStorage(ClassLoader classLoader, CacheConfig cacheConfig) {
+        this(classLoader, cacheConfig, new BasicHttpCacheStorage(cacheConfig));
+    }
+
+    public JarCacheStorage(ClassLoader classLoader, CacheConfig cacheConfig,
+            HttpCacheStorage delegate) {
         setClassLoader(classLoader);
-        cacheConfig.setMaxObjectSize(0);
-        cacheConfig.setMaxCacheEntries(0);
-        cacheConfig.setMaxUpdateRetries(0);
-        cacheConfig.getMaxCacheEntries();
+        this.cacheConfig = cacheConfig;
+        this.delegate = delegate;
     }
 
     @Override
     public void putEntry(String key, HttpCacheEntry entry) throws IOException {
-        // ignored
-
+        delegate.putEntry(key, entry);
     }
-
-    ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public HttpCacheEntry getEntry(String key) throws IOException {
@@ -107,7 +145,9 @@ public class JarCacheStorage implements HttpCacheStorage {
                 }
             }
         }
-        return null;
+        // If we didn't find it in our cache, then attempt to find it in the
+        // chained delegate
+        return delegate.getEntry(key);
     }
 
     private Enumeration<URL> getResources() throws IOException {
@@ -118,14 +158,6 @@ public class JarCacheStorage implements HttpCacheStorage {
             return ClassLoader.getSystemResources(JARCACHE_JSON);
         }
     }
-
-    /**
-     * Map from uri of jarcache.json (e.g. jar://blab.jar!jarcache.json) to a
-     * SoftReference to its content as JsonNode.
-     *
-     * @see #getJarCache(URL)
-     */
-    protected ConcurrentMap<URI, SoftReference<JsonNode>> jarCaches = new ConcurrentHashMap<URI, SoftReference<JsonNode>>();
 
     protected JsonNode getJarCache(URL url) throws IOException, JsonProcessingException {
 
@@ -176,7 +208,7 @@ public class JarCacheStorage implements HttpCacheStorage {
         final List<Header> responseHeaders = new ArrayList<Header>();
         if (!cacheNode.has(HTTP.DATE_HEADER)) {
             responseHeaders
-            .add(new BasicHeader(HTTP.DATE_HEADER, DateUtils.formatDate(new Date())));
+                    .add(new BasicHeader(HTTP.DATE_HEADER, DateUtils.formatDate(new Date())));
         }
         if (!cacheNode.has(HeaderConstants.CACHE_CONTROL)) {
             responseHeaders.add(new BasicHeader(HeaderConstants.CACHE_CONTROL,
@@ -191,19 +223,20 @@ public class JarCacheStorage implements HttpCacheStorage {
             responseHeaders.add(new BasicHeader(headerName, header.asText()));
         }
 
-        return new HttpCacheEntry(new Date(), new Date(), new BasicStatusLine(HttpVersion.HTTP_1_1,
-                200, "OK"), responseHeaders.toArray(new Header[0]), resource);
+        return new HttpCacheEntry(new Date(), new Date(),
+                new BasicStatusLine(HttpVersion.HTTP_1_1, 200, "OK"),
+                responseHeaders.toArray(new Header[0]), resource);
     }
 
     @Override
     public void removeEntry(String key) throws IOException {
-        // Ignored
+        delegate.removeEntry(key);
     }
 
     @Override
-    public void updateEntry(String key, HttpCacheUpdateCallback callback) throws IOException,
-    HttpCacheUpdateException {
-        // ignored
+    public void updateEntry(String key, HttpCacheUpdateCallback callback)
+            throws IOException, HttpCacheUpdateException {
+        delegate.updateEntry(key, callback);
     }
 
     public CacheConfig getCacheConfig() {
