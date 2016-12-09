@@ -25,8 +25,7 @@ public class DocumentLoader {
             throw new JsonLdError(JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED, url);
         }
 
-        final MappingJsonFactory jsonFactory = new MappingJsonFactory();
-        final InputStream in = openStreamFromURL(url);
+        final RemoteDocument doc = new RemoteDocument(url, null);
         try {
             if (url.equalsIgnoreCase("http://schema.org/")) {
                 doc.setDocument(JsonUtils.fromURLJavaNet(new URL(url)));
