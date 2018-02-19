@@ -10,6 +10,7 @@ import static com.github.jsonldjava.utils.Obj.newMap;
 
 import java.util.*;
 
+import com.github.jsonldjava.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,6 +174,16 @@ public class JsonLdApi {
         if (element instanceof Map) {
             // access helper
             final Map<String, Object> elem = (Map<String, Object>) element;
+
+            // Deserialize literal JSON
+            if (elem.containsKey(JsonLdConsts.TYPE)
+                    && JsonLdConsts.RDF_XML_LITERAL.equals(elem.get(JsonLdConsts.TYPE))) {
+                try {
+                    return JsonUtils.fromString((String)elem.get(JsonLdConsts.VALUE));
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to parse JSON literal", e);
+                }
+            } else
 
             // 4
             if (elem.containsKey(JsonLdConsts.VALUE) || elem.containsKey(JsonLdConsts.ID)) {
@@ -804,6 +815,18 @@ public class JsonLdApi {
                             // 7.6.2.3.2)
                             ((List<Object>) expandedValue).add(item);
                         }
+                    }
+                }
+                // Serialize literal JSON
+                else if (activeCtx.getTermDefinition(key) != null &&
+                        JsonLdConsts.RDF_XML_LITERAL.equals(activeCtx.getTermDefinition(key).get(JsonLdConsts.TYPE))) {
+                    try {
+                        final Map<String, Object> tmp = newMap();
+                        tmp.put(JsonLdConsts.VALUE, JsonUtils.toString(value));
+                        tmp.put(JsonLdConsts.TYPE, activeCtx.getTermDefinition(key).get(JsonLdConsts.TYPE));
+                        expandedValue = tmp;
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to serialize literal value");
                     }
                 }
                 // 7.7)
